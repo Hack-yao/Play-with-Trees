@@ -19,7 +19,7 @@ int L[MAXN], R[MAXN];
 
 int X[MAXN];
 
-// [L, R)
+// [L, R]
 void dfs(int root) {
     int stack[MAXN];
     bool flag[MAXN];
@@ -32,7 +32,7 @@ void dfs(int root) {
         int x = stack[esp - 1];
         if (!flag[x]) {
             flag[x] = true;
-            X[ptr] = x; L[x] = ptr; ++ ptr;
+            ++ ptr; X[ptr] = x; L[x] = ptr;
             for (int i = start[x]; i != -1; i = nexte[i])
                 if (!flag[v[i]]) {
                     stack[esp] = v[i]; ++ esp;
@@ -45,95 +45,80 @@ void dfs(int root) {
     }
 }
 
-struct interval_tree {
-    int *elem;
-    int l, r; //[l, r)
-} Tree[20 * MAXN];
+#define MAXDEPTH    20
+int Tree[MAXDEPTH][MAXN];
 
-
-void build_interval_tree(int t, int left, int right) {
-    Tree[t].l = left; Tree[t].r = right;
-    if (left + 1 == right) {
-        Tree[t].elem = new int[1];
-        Tree[t].elem[0] = X[left];
+void build_interval_tree(int depth, int left, int right) {
+    if (left == right) {
+        Tree[depth][left] = X[left];
         return;
     }
-    else {
-        int mid = (left + right) >> 1;
+    int mid = (left + right) >> 1;
 
-        build_interval_tree(t * 2, left, mid);
-        build_interval_tree(t * 2 + 1, mid, right);
-        Tree[t].elem = new int[right - left];
-        int x = 0, y = 0;
-        int *ptrX = Tree[t * 2].elem;
-        int *ptrY = Tree[t * 2 + 1].elem;
-        int *ptr = Tree[t].elem;
-        while (x < mid - left || y < right - mid) {
-            if (x == mid - left) {
-                *ptr ++ = *ptrY ++; ++ y;
-            }
-            else if (y == right - mid) {
-                *ptr ++ = *ptrX ++; ++ x;
-            }
-            else if (key[*ptrX] < key[*ptrY]) {
-                *ptr ++ = *ptrX ++; ++ x;
-            }
-            else {
-                *ptr ++ = *ptrY ++; ++ y;
-            }
-        }
+    build_interval_tree(depth + 1, left, mid);
+    build_interval_tree(depth + 1, mid + 1, right);
+    int x = left, y = mid + 1;
+    int ptr = left;
+    while (x <= mid && y <= right) {
+        if (key[Tree[depth + 1][x]] < key[Tree[depth + 1][y]])
+            Tree[depth][ptr ++] = Tree[depth + 1][x ++];
+        else
+            Tree[depth][ptr ++] = Tree[depth + 1][y ++];
     }
+    while (x <= mid)
+        Tree[depth][ptr ++] = Tree[depth + 1][x ++];
+    while (y <= right)
+        Tree[depth][ptr ++] = Tree[depth + 1][y ++];
 }
 
-// return #elements in A, which < key
-int binary_search(int *A, int length, int K) {
-    if (K > key[A[length - 1]]) return length;
-    if (K <= key[A[0]]) return 0;
 
-    int left = 0; int right = length - 1;
-    // [left, right]
-    while (left < right) {
-        //printf("%d %d\n", left, right);
-        int mid = (left + right) >> 1;
-        if (key[A[mid]] == K) return mid;
-        if (key[A[mid]] < K)
-            left = mid + 1;
-        else 
-            right = mid;
-    }
-    return left;
-}
-
-// [left, right)
-int rank_interval_tree(int root, int left, int right, int key) {
+// [left, right]
+int rank_interval_tree(int depth, int left, int right, int l, int r, int K) {
     top:
-    if (left == Tree[root].l && right == Tree[root].r)
-        return binary_search(Tree[root].elem, Tree[root].r - Tree[root].l, key);
-    if (right <= Tree[root * 2].r) {
-        root = root * 2; goto top;
+    if (left == l && right == r) {
+        // find all <= K
+        //printf("K = %d, largest = %d, left = %d, right = %d\n", K, key[Tree[depth][right]], left, right);
+        if (K >= key[Tree[depth][right]]) return (right + 1) - left;
+        //if (K < key[Tree[depth][left]]) return 0;
+        int low = left;
+        int high = right;
+        while (low < high) {
+            int mid = (low + high) >> 1;
+            //printf("low = %d, high = %d, key = %d, K = %d\n", low, high, key[Tree[depth][mid]], K);
+            if (key[Tree[depth][mid]] <= K)
+                low = mid + 1;
+            else
+                high = mid;
+        }
+        return low - left;
     }
-    if (left >= Tree[root * 2 + 1].l){
-        root = root * 2 + 1; goto top;
+    int mid = (left + right) >> 1;
+    if (r <= mid) {
+        ++ depth; right = mid; goto top;
     }
-    return rank_interval_tree(root * 2, left, Tree[root * 2].r, key) +
-           rank_interval_tree(root * 2 + 1, Tree[root * 2 + 1].l, right, key);
+    if (l >= mid + 1) {
+        ++ depth; left = mid + 1; goto top;
+    }
+    return rank_interval_tree(depth + 1, left, mid, l, mid, K) + rank_interval_tree(depth + 1, mid + 1, right, mid + 1, r, K);
 }
 
 
 int query(int node, int rank) {
-    int left = 0;
+    int left = 1;
     int right = N;
-    while (left + 1 < right) {
+    //printf("node = %d, rank = %d\n", node, rank);
+    while (left < right) {
         int mid = (left + right) >> 1;
-        int k = rank_interval_tree(1, L[node], R[node], key[Tree[1].elem[mid]]);
-        if (k == rank - 1)
-            left = mid;
-        else if (k < rank - 1)
+        int k = rank_interval_tree(0, 1, N, L[node], R[node], key[Tree[0][mid]]);
+        //printf("%d %d %d, rank = %d\n", L[node], R[node], key[Tree[0][mid]], k);
+        if (k == rank)
+            right = mid;
+        else if (k < rank)
             left = mid + 1;
         else
-            right = mid;
+            right = mid - 1;
     }
-    return Tree[1].elem[left];
+    return Tree[0][left];
 }
 
 int main() {
@@ -153,7 +138,18 @@ int main() {
     int root = 1;
     dfs(root);
 
-    build_interval_tree(1, 0, N);
+    build_interval_tree(0, 1, N);
+
+/*
+    for (int i = 0; i <= 4; ++ i) {
+        for (int j = 1; j <= N; ++ j)
+            printf("%d ", key[Tree[i][j]]);
+        printf("\n");
+    }
+
+    for (int i = 1; i <= N; ++ i)
+        printf("L = %d, R = %d\n", L[i], R[i]);
+*/
 
     int M;
     scanf("%d", &M);

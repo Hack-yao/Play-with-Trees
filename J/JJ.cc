@@ -65,7 +65,7 @@ void build_interval_tree(int depth, int left, int right) {
         if (key[Tree[depth][i]] <= median) {
             Tree[depth + 1][x ++] = Tree[depth][i]; ++ f[depth][i];
         }
-        else if (key[Tree[depth][i]] > median)
+        else
             Tree[depth + 1][y ++] = Tree[depth][i];
         /*
         else {

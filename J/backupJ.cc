@@ -7,7 +7,7 @@
 using namespace std;
 
 #define MAXN    100000 + 1
-#define MAXE    2*MAXN
+#define MAXE    2*(MAXN)
 
 int N;
 

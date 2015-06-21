@@ -10,7 +10,7 @@ int N;
 
 int E;
 int v[MAXE];
-int start[MAXE];
+int start[MAXN];
 int next[MAXE];
 
 int flag[MAXN];

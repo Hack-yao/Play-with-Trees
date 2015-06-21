@@ -5,12 +5,14 @@
 
 using namespace std;
 
-#define N 1000000
+#define N 10
 
 int f[N + 1];
 
 int main() {
     srand(time(NULL));
+    printf("1\n");
+    printf("\n");
     printf("%d\n", N);
     /*
     for (int i = 1; i <= N - 1; ++ i)

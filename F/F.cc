@@ -13,7 +13,7 @@ int N;
 
 int E;
 int v[MAXE];
-int start[MAXE];
+int start[MAXN];
 int nexte[MAXE];
 
 int f[MAXN], g[MAXN];

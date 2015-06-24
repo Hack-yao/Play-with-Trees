@@ -1,8 +1,5 @@
-#include <iostream>
 #include <cstdio>
 #include <cstring>
-#include <vector>
-#include <algorithm>
 
 using namespace std;
 
@@ -12,37 +9,30 @@ using namespace std;
 #define MAXST   2000100 + 1
 #define LogMAXST    22
 
-struct SparseTable {
-    int N;
-    int F[LogMAXST][MAXST];
-    vector<int> A;
+int Level[MAXN];
 
-    SparseTable() {}
-    SparseTable(const vector<int> &A) {
-        preprocess(A);
-    }
+inline int clz(int x){return __builtin_clz(x);}
+inline int lg2(int x){return !x ? -1 : 31 - clz(x);}
 
-    void preprocess(const vector<int> &A) {
-        N = A.size();
-        this->A = A;
-        for (int i = 0; i < N; ++ i)
-            F[0][i] = i;
-        for (int k = 1; (1 << k) <= N; ++ k)
-            for (int i = 0; i + (1 << k) - 1 < N; ++ i)
-                if (A[F[k - 1][i]] <= A[F[k - 1][i + (1 << (k - 1))]])
-                    F[k][i] = F[k - 1][i];
-                else
-                    F[k][i] = F[k - 1][i + (1 << (k - 1))];
-    }
+int STN;
+int F[LogMAXST][MAXST];
 
-    int Query(int x, int y) const {
-        int len = y - x + 1;
-        int k;
-        for (k = 0; (1 << k) <= len; ++ k);
-        -- k;
-        return (A[F[k][x]] <= A[F[k][y - (1 << k) + 1]] ? F[k][x] : F[k][y - (1 << k) + 1]);
-    }
-};
+void STpreprocess(int *A, int n) {
+    STN = n;
+    for (int i = 0; i < STN; ++ i)
+        F[0][i] = A[i];
+    for (int k = 1; (1 << k) <= STN; ++ k)
+        for (int i = 0; i + (1 << k) - 1 < STN; ++ i)
+            if (Level[F[k - 1][i]] <= Level[F[k - 1][i + (1 << (k - 1))]])
+                F[k][i] = F[k - 1][i];
+            else
+                F[k][i] = F[k - 1][i + (1 << (k - 1))];
+}
+
+int Query(int x, int y) {
+    int k = lg2(y - x);
+    return (Level[F[k][x]] <= Level[F[k][y - (1 << k) + 1]] ? F[k][x] : F[k][y - (1 << k) + 1]);
+}
 
 
 int E;
@@ -53,67 +43,72 @@ int nexte[MAXE];
 
 bool flag[MAXN];
 
-vector<int> EulerTour;
-vector<int> level;
+int ETptr;
+int EulerTour[MAXST];
 int first[MAXN];
-SparseTable st;
 
 int dist[MAXN]; // from root = 1 to x
 
-void dfs(int x, int depth, int cur_dist) {
+void dfs(int x) {
     flag[x] = false;
-    dist[x] = cur_dist;
-    first[x] = EulerTour.size();
-    EulerTour.push_back(x);
-    level.push_back(depth);
+    first[x] = ETptr;
+    EulerTour[ETptr] = x; ++ ETptr;
     for (int i = start[x]; i != -1; i = nexte[i]) {
         if (!flag[v[i]]) continue;
-        dfs(v[i], depth + 1, cur_dist + d[i]);
-        EulerTour.push_back(x);
-        level.push_back(depth);
+        Level[v[i]] = Level[x] + 1;
+        dist[v[i]] = dist[x] + d[i];
+        dfs(v[i]);
+        EulerTour[ETptr] = x; ++ ETptr;
     }
-}
-
-inline int LCA(int x, int y) {
-    int L = first[x], R = first[y];
-    if (L > R) swap(L, R);
-    return EulerTour[st.Query(L, R)];
-}
-
-
-inline bool node_on_path(int x, int p, int q) {
-    int u = LCA(p, q); 
-    if (LCA(u, x) != u) return false;
-    return (LCA(x, p) == x || LCA(x, q) == x);
-}
-
-inline int entry_point(int x, int p, int q) {
-    int u = LCA(p, q);
-    if (LCA(u, x) != u) return u;
-    int y = LCA(p, x);
-    if (y == u) return LCA(q, x);
-    return y;
-}
-
-inline pair<int, int> intersection(int x, int y, int p, int q) {
-    int a = entry_point(x, p, q);
-    int b = entry_point(y, p, q);
-    if (node_on_path(a, x, y) && node_on_path(b, x, y))
-        return make_pair(a, b);
-    return make_pair(-1, -1);
-}
-
-inline int getdist(int x, int y) {
-    int u = LCA(x, y);
-    return dist[x] + dist[y] - 2 * dist[u];
 }
 
 #define MAXM    1000
 
 struct ant {
     int s, t, v;
+    int lca;
 } A[MAXM];
 
+inline int LCA(int x, int y) {
+    if (x == y) return x;
+    int L = first[x], R = first[y];
+    if (L > R) {
+        int k = L; L = R; R = k;
+    }
+    return Query(L, R);
+}
+
+
+inline bool node_on_path(int x, int i) {
+    return LCA(A[i].lca, x) == A[i].lca && (LCA(x, A[i].s) == x || LCA(x, A[i].t) == x);
+}
+
+inline int entry_point(int x, int i) {
+    int u = A[i].lca;
+    if (LCA(u, x) != u) return u;
+    int y = LCA(A[i].s, x);
+    if (y != u) return y;
+    return LCA(A[i].t, x);
+}
+
+int IX, IY;
+
+inline void intersection(int i, int j) {
+    int a = entry_point(A[i].s, j);
+    if (!node_on_path(a, i)) {
+        IX = IY = -1; return;
+    }
+    int b = entry_point(A[i].t, j);
+    if (!node_on_path(b, i)) {
+        IX = IY = -1; return;
+    }
+    IX = a; IY = b;
+}
+
+inline int getdist(int x, int y) {
+    int u = LCA(x, y);
+    return dist[x] + dist[y] - 2 * dist[u];
+}
 int main() {
     int N, M;
 
@@ -135,28 +130,30 @@ int main() {
         for (int i = 0; i < M; ++ i)
             scanf("%d%d%d", &A[i].s, &A[i].t, &A[i].v);
 
-        //cout << "hereA" << endl;
         memset(flag, true, sizeof(flag));
         int root = 1;
-        EulerTour.clear();
-        level.clear();
-        dfs(root, 0, 0);
+        ETptr = 0;
+        dist[root] = 0; Level[root] = 0;
+        dfs(root);
 
-        //cout << "hereB" << endl;
 
-        st.preprocess(level);
+        STpreprocess(EulerTour, ETptr);
+
+        //printf("%d\n", LCA(1, 2));
+
+        for (int i = 0; i < M; ++ i)
+            A[i].lca = LCA(A[i].s, A[i].t);
 
         int total = 0;
         for (int i = 0; i < M - 1; ++ i)
             for (int j = i + 1; j < M; ++ j) {
-                pair<int, int> path = intersection(A[i].s, A[i].t, A[j].s, A[j].t);
-                if (path.first == -1) continue;
-                int p = path.first;
-                int q = path.second;
-                double timePi = (double)getdist(A[i].s, p) / (double)A[i].v;
-                double timeQi = (double)getdist(A[i].s, q) / (double)A[i].v;
-                double timePj = (double)getdist(A[j].s, p) / (double)A[j].v;
-                double timeQj = (double)getdist(A[j].s, q) / (double)A[j].v;
+                intersection(i, j);
+                //printf("%d %d\n", i, j);
+                if (IX == -1) continue;
+                double timePi = (double)getdist(A[i].s, IX) / (double)A[i].v;
+                double timeQi = (double)getdist(A[i].s, IY) / (double)A[i].v;
+                double timePj = (double)getdist(A[j].s, IX) / (double)A[j].v;
+                double timeQj = (double)getdist(A[j].s, IY) / (double)A[j].v;
                 //cout << timePi << " " << timeQi << " " << timePj << " " << timeQj << endl;
                 //printf("%d %d\n", p, q);
                 if (timePi <= timePj && timeQj <= timeQi)

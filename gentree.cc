@@ -5,7 +5,7 @@
 
 using namespace std;
 
-#define N 1000000
+#define N 100000
 #define M 1000
 
 //#define N 10
@@ -15,7 +15,7 @@ int f[N + 1];
 
 int main() {
     srand(time(NULL));
-    int T = 1;
+    int T = 20;
 
     printf("%d\n", T);
     while (T --) {

@@ -1,3 +1,4 @@
+// use g++ 4.9
 #include <cstdio>
 #include <cstring>
 
@@ -14,22 +15,19 @@ int Level[MAXN];
 inline int clz(int x){return __builtin_clz(x);}
 inline int lg2(int x){return !x ? -1 : 31 - clz(x);}
 
-int STN;
+int ETptr;
 int F[LogMAXST][MAXST];
 
-void STpreprocess(int *A, int n) {
-    STN = n;
-    for (int i = 0; i < STN; ++ i)
-        F[0][i] = A[i];
-    for (int k = 1; (1 << k) <= STN; ++ k)
-        for (int i = 0; i + (1 << k) - 1 < STN; ++ i)
+void STpreprocess() {
+    for (int k = 1; (1 << k) <= ETptr; ++ k)
+        for (int i = 0; i + (1 << k) - 1 < ETptr; ++ i)
             if (Level[F[k - 1][i]] <= Level[F[k - 1][i + (1 << (k - 1))]])
                 F[k][i] = F[k - 1][i];
             else
                 F[k][i] = F[k - 1][i + (1 << (k - 1))];
 }
 
-int Query(int x, int y) {
+inline int Query(int x, int y) {
     int k = lg2(y - x);
     return (Level[F[k][x]] <= Level[F[k][y - (1 << k) + 1]] ? F[k][x] : F[k][y - (1 << k) + 1]);
 }
@@ -43,22 +41,19 @@ int nexte[MAXE];
 
 bool flag[MAXN];
 
-int ETptr;
-int EulerTour[MAXST];
 int first[MAXN];
-
 int dist[MAXN]; // from root = 1 to x
 
 void dfs(int x) {
     flag[x] = false;
     first[x] = ETptr;
-    EulerTour[ETptr] = x; ++ ETptr;
+    F[0][ETptr] = x; ++ ETptr;
     for (int i = start[x]; i != -1; i = nexte[i]) {
         if (!flag[v[i]]) continue;
         Level[v[i]] = Level[x] + 1;
         dist[v[i]] = dist[x] + d[i];
         dfs(v[i]);
-        EulerTour[ETptr] = x; ++ ETptr;
+        F[0][ETptr] = x; ++ ETptr;
     }
 }
 
@@ -137,7 +132,7 @@ int main() {
         dfs(root);
 
 
-        STpreprocess(EulerTour, ETptr);
+        STpreprocess();
 
         //printf("%d\n", LCA(1, 2));
 

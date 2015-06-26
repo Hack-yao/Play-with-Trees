@@ -17,8 +17,127 @@ void extended_euclidean(int a, int b) {
     Y = Y - (a / b) * X;
 } 
 */
+#define Base    1000000000
+#define Capacity    100
 
+struct BigInt {
+    int len;
+    int data[Capacity];
 
+    BigInt() : len(0) {}
+    BigInt(int key) {
+        for (len = 0; key; key /= Base)
+            data[len ++] = key % Base;
+    }
+
+    BigInt & operator = (int key) {
+        for (len = 0; key; key /= Base)
+            data[len ++] = key % Base;
+        return *this;
+    }
+
+    BigInt & operator = (const BigInt &key) {
+        len = key.len;
+        memcpy(data, key.data, len * sizeof(int));
+        return *this;
+    }
+
+    void print() {
+        if (len == 0) {
+            printf("0");
+            return;
+        }
+        printf("%d", data[len - 1]);
+        for (int i = len - 2; i >= 0; -- i)
+            for (int j = Base / 10; j; j /= 10)
+                printf("%d", data[i] / j % 10);
+    }
+
+    int & operator [] (int index) { return data[index]; }
+    int operator [] (int index) const { return data[index]; }
+};
+
+BigInt operator + (const BigInt &A, const BigInt &B) {
+    BigInt ret;
+    int i;
+    int carry = 0;
+    for (i = 0; i < A.len || i < B.len || carry; ++ i) {
+        if (i < A.len) carry += A[i];
+        if (i < B.len) carry += B[i]; 
+        ret[i] = carry % Base;
+        carry /= Base;
+    }
+    ret.len = i;
+    return ret;
+}
+
+BigInt operator - (const BigInt &A, const BigInt &B) {
+    BigInt ret;
+    int carry = 0;
+    ret.len = A.len;
+    for (int i = 0; i < ret.len; ++ i) {
+        ret[i] = A[i] - carry;
+        if (i < B.len) ret[i] -= B[i];
+        if (ret[i] < 0) carry = 1, ret[i] += Base;
+        else carry = 0;
+    }
+    while (ret.len && ret[ret.len] == 0) -- ret.len;
+    return ret;
+}
+
+BigInt operator * (const BigInt &A, const int B) {
+    if (B == 0) return 0;
+    BigInt ret;
+    long long carry = 0;
+    int i;
+    for (i = 0; i < A.len || carry; ++ i) {
+        if (i < A.len) carry += (long long)(A[i]) * B;
+        ret[i] = carry % Base;
+        carry /= Base;
+    }
+    ret.len = i;
+    return ret;
+}
+
+BigInt operator * (const BigInt &A, const BigInt &B) {
+    if (B.len == 0 || A.len == 0) return 0;
+    BigInt ret;
+    for (int i = 0; i < A.len; ++ i) {
+        long long carry = 0;
+        for (int j = 0; j < B.len || carry; ++ j) {
+            if (j < B.len) carry += (long long)A[i] * B[j];
+            if (i + j < ret.len) carry += ret[i + j];
+            if (i + j >= ret.len) ret[ret.len ++] = carry % Base;
+            else ret[i + j] = carry % Base;
+            carry /= Base;
+        }
+    }
+    return ret;
+}
+
+BigInt operator / (const BigInt &A, const int B) {
+    BigInt ret;
+    long long C = 0;
+    for (int i = A.len - 1; i >= 0; -- i) {
+        C = (C * Base) + A[i];
+        ret[i] = C / B;
+        C %= B;
+    }
+    ret.len = A.len;
+    while (ret.len && ret[ret.len - 1] == 0) -- ret.len;
+    return ret;
+}
+
+BigInt operator % (const BigInt &A, const int B) {
+    long long C = 0;
+    for (int i = A.len - 1; i >= 0; -- i) {
+        C = (C * Base) + A[i];
+        C %= B;
+    }
+    return C;
+}
+
+/*
 inline int inverse(int b, int MOD){
     int a = MOD, x1 = 0, x2 = 1, q;
     while (1){
@@ -33,14 +152,40 @@ inline int inverse(int b, int MOD){
         if (x2 < 0) x2 += MOD;
     }
 }
+*/
 
 #define MAXN 1000+1
 
-int A[MAXN];
+//int A[MAXN];
 
-int f[MAXN][MAXN];
+//int f[MAXN][MAXN];
+
+BigInt A[MAXN];
+
+void preprocess() {
+    int n = 1000;
+    A[0] = 1; A[1] = 1;
+    for (int i = 1; i < n; ++ i) {
+        A[i + 1] = 0;
+        for (int j = 1; j <= i; ++ j) {
+            BigInt sum = 0;
+            for (int k = 1; k <= i / j; ++ k)
+                sum = sum + A[i + 1 - j * k];
+            sum = sum * A[j];
+            sum = sum * j;
+            A[i + 1] = A[i + 1] + sum;
+        }
+        A[i + 1] = A[i + 1] / i;
+    }
+
+    for (int i = 1; i <= 1000; ++ i) {
+        A[i].print(); printf("\n");
+    }
+}
 
 int main() {
+    preprocess();
+    /*
     int k, n, p;
     //memset(f[0], 0, sizeof(f[0]));
     A[0] = A[1] = 1;
@@ -67,11 +212,7 @@ int main() {
                     f[i][j] = f[i - j][j] + A[i + 1 - j];
                     total = total + (long long)j * f[i][j] * A[j];
                 }
-                if (total % i == 0) {
-                    total = total / i;
-                }
-                else
-                    total = total * inverse(i, p);
+                total = total * inverse(i, p);
 
                 A[i + 1] = total % p;
             }
@@ -92,5 +233,6 @@ int main() {
         }
         printf("%d\n", ans);
     }
+    */
     return 0;
 }

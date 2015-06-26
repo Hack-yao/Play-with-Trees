@@ -2,7 +2,9 @@
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
-#include <vector>
+//#include <vector>
+#include <ctime>
+#include <cstdlib>
 
 using namespace std;
 
@@ -58,11 +60,20 @@ bool cmp(const edge &A, const edge &B) {
     return A.c < B.c;
 }
 
+/*
+bool rand_cmp(const edge &A, const edge &B) {
+    return A.c + (rand() % 1000) < B.c + (rand() % 1000);
+}
+*/
+
 UnionFind S;
 int degree[MAXN];
 
+struct XY {
+    int x, y;
+};
 
-int MST(int &bound, int *T) {
+int MST(int &bound, XY *T) {
     int tree, cost, maxdeg;
     tree = cost = maxdeg = 0;
     S.clear();
@@ -75,7 +86,7 @@ int MST(int &bound, int *T) {
             if (degree[y] > maxdeg) maxdeg = degree[y];
             cost += E[i].c;
             S.merge(x, y);
-            T[tree] = i; ++ tree;
+            T[tree].x = x; T[tree].y = y; ++ tree;
         }
         if (tree == N - 1) break;
     }
@@ -84,20 +95,37 @@ int MST(int &bound, int *T) {
     return cost;
 }
 
-void print(int cost, int bound, int *T) {
+void print(int cost, int bound, XY *T) {
     printf("%d %d\n", cost, bound);
     for (int i = 0; i < N - 1; ++ i)
-        printf("%d %d\n", E[T[i]].x, E[T[i]].y);
+        printf("%d %d\n", T[i].x, T[i].y);
 }
 
-int LB_T[MAXN], LB, LB_cost;
-int UB_T[MAXN], UB, UB_cost;
+
+
+int LB, LB_cost;
+int UB, UB_cost;
+
+XY LB_T[MAXN];
+XY UB_T[MAXN];
+XY temp[MAXN];
+XY best[MAXN];
+/*
 int LB_score;
 int UB_score;
+*/
 
-int temp[MAXN];
+
+void shuffle() {
+    int T = M / 5;
+    while (T --) {
+        int k = rand() % (M - 1);
+        swap(E[k], E[k + 1]);
+    }
+}
 
 int main() {
+    srand(time(NULL));
     scanf("%d%d%d", &N, &M, &B);
     for (int i = 0; i < M; ++ i) {
         scanf("%d%d%d", &E[i].x, &E[i].y, &E[i].c);
@@ -117,6 +145,28 @@ int main() {
         if (LB_cost != -1) break;
     }
 
+    //printf("find! %d\n", LB);
+
+    int best_cost = LB_cost;
+    int T = 200;
+    while (T --) {
+        shuffle();
+//        sort(E, E + M, rand_cmp);
+        //random_shuffle(E, E + M);
+        int cost = MST(LB, temp);
+        if (cost != -1 && cost < best_cost) {
+            //printf("update! %d -> %d\n", best_cost, cost);
+            best_cost = cost;
+            for (int i = 0; i < N - 1; ++ i)
+                best[i] = temp[i];
+        }
+    }
+    if (best_cost == LB_cost)
+        print(LB_cost, LB, LB_T);
+    else
+        print(best_cost, LB, best);
+
+/*
     if (LB == B)
         LB_score = 5 * LB_cost;
     else
@@ -145,5 +195,6 @@ int main() {
         int cost = MST(best, temp);
         print(cost, best, temp);
     }
+*/
     return 0;
 }

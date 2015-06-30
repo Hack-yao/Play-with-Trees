@@ -6,34 +6,53 @@
 using namespace std;
 
 #define MAXN    28
+#define MAXQUEUE   16 
 
 int color[MAXN];
-bool flag[MAXN];
+int flag[MAXN];
 
-struct edge {
-    int x, y;
-};
+int ALL;
 
-edge E[MAXN];
+int graph[MAXN][MAXN];
+
 int N;
 int K, L;
 
-inline int f() {
-    int ret = 0;
-    memset(flag, false, sizeof(flag));
-    for (int i = 0; i < N - 1; ++ i) {
-        int k = color[E[i].x] - color[E[i].y];
-        if (k < 0) k = -k;
-        if (!flag[k]) {
-            flag[k] = true;
-            ++ ret;
-        }
-    }
-    return ret;
+bool tabu[MAXN][MAXN];
+int queue[MAXQUEUE];
+int queuePtr;
+
+inline void inc(int x) {
+    if (x < 0) x = -x;
+    if (!flag[x]) ++ ALL;
+    ++ flag[x];
 }
 
+inline void dec(int x) {
+    if (x < 0) x = -x;
+    -- flag[x];
+    if (!flag[x]) -- ALL;
+}
 
-void solve1() {
+inline void swap(int x, int y) {
+    for (int i = 1; i <= graph[x][0]; ++ i) {
+        if (graph[x][i] == y) continue;
+        dec(color[graph[x][i]] - color[x]);
+        inc(color[graph[x][i]] - color[y]);
+    }
+    for (int i = 1; i <= graph[y][0]; ++ i) {
+        if (graph[y][i] == x) continue;
+        dec(color[graph[y][i]] - color[y]);
+        inc(color[graph[y][i]] - color[x]);
+    }
+    int temp = color[x]; color[x] = color[y]; color[y] = temp;
+}
+
+inline int max(int a, int b) { return a > b ? a : b; }
+
+inline void solve1() {
+    scanf("%d", &N);
+
     for (int i = 1; i <= N; ++ i)
         color[i] = i - 1;
 
@@ -43,33 +62,52 @@ void solve1() {
         temp = color[i]; color[i] = color[k]; color[k] = temp;
     }
 
-    const int trial = (N * (N - 1) / 5 > 20) ? N * (N - 1) / 5 : 20;
-    int cur = f();
-    while (cur < N - 1) {
-        //printf("%d\n", cur);
+    ALL = 0;
+    memset(flag, 0, sizeof(flag));
+    memset(graph, 0, sizeof(graph));
+    for (int i = 0; i < N - 1; ++ i) {
+        int x, y;
+        scanf("%d%d", &x, &y);
+        ++ graph[x][0]; graph[x][graph[x][0]] = y;
+        ++ graph[y][0]; graph[y][graph[y][0]] = x;
+        inc(color[x] - color[y]);
+    }
+
+    memset(tabu, false, sizeof(tabu));
+    memset(queue, -1, sizeof(queue));
+    queuePtr = 0;
+    while (ALL < N - 1) {
+        //printf("%d\n", ALL);
         int best = -1, best_x, best_y;
-        int counter = 0;
         bool up = false;
-        while (counter < trial) {
-            int x = rand() % N + 1;
-            int y = rand() % N + 1;
-            if (x == y) continue;
-            ++ counter;
-            temp = color[x]; color[x] = color[y]; color[y] = temp;
-            int next = f();
-            if (next > cur) {
-                up = true; cur = next; break;
+        for (int x = 1; x < N; ++ x)
+            for (int y = x + 1; y <= N; ++ y) {
+                if (tabu[x][y]) continue;
+                int last = ALL;
+                swap(x, y);
+                if (ALL > last) {
+                    up = true;
+                    if (queue[queuePtr] != -1)
+                        tabu[queue[queuePtr] >> 5][queue[queuePtr] & 31] = false;
+                    queue[queuePtr] = (x << 5) + y;
+                    tabu[x][y] = true;
+                    queuePtr = (queuePtr + 1) & (MAXQUEUE - 1);
+                    break;
+                }
+                if (ALL > best) {
+                    best = ALL;
+                    best_x = x; best_y = y;
+                }
+                swap(x, y);
             }
-            if (next > best) {
-                best = next;
-                best_x = x; best_y = y;
+            if (!up && best != -1) {
+                swap(best_x, best_y);
+                if (queue[queuePtr] != -1)
+                    tabu[queue[queuePtr] >> 5][queue[queuePtr] & 31] = false;
+                queue[queuePtr] = (best_x << 5) + best_y;
+                tabu[best_x][best_y] = true;
+                queuePtr = (queuePtr + 1) & (MAXQUEUE - 1);
             }
-            temp = color[x]; color[x] = color[y]; color[y] = temp;
-        }
-        if (!up && best != -1) {
-            temp = color[best_x]; color[best_x] = color[best_y]; color[best_y] = temp;
-            cur = best;
-        }
     }
 
     for (int i = 1; i < N; ++ i)
@@ -77,7 +115,8 @@ void solve1() {
     printf("%d\n", color[N]);
 }
 
-void solve2() {
+inline void solve2() {
+    scanf("%d%d", &K, &L);
     int head = 1;
     int tail = K * (L + 1);
     printf("0");
@@ -102,16 +141,10 @@ int main() {
     while (T --) {
         int k;
         scanf("%d", &k);
-        if (k == 1) {
-            scanf("%d", &N);
-            for (int i = 0; i < N - 1; ++ i)
-                scanf("%d%d", &E[i].x, &E[i].y);
+        if (k == 1)
             solve1();
-        }
-        else {
-            scanf("%d%d", &K, &L);
+        else
             solve2();
-        }
     }
 
     return 0;

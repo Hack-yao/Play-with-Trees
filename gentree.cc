@@ -5,7 +5,7 @@
 
 using namespace std;
 
-#define MAXN 27
+#define MAXN 27 
 //#define N 20
 //#define M 100000
 

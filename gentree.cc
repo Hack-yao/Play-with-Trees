@@ -6,7 +6,7 @@
 using namespace std;
 
 //#define MAXN 27 
-#define N 50
+#define N 100000 
 //#define M 100000
 
 //#define N 10
@@ -17,22 +17,24 @@ int f[N + 1];
 int main() {
     srand(time(NULL));
     //int M = 100000;
-    int T = 1;
+    int T = 20;
 
     printf("%d\n", T);
     while (T --) {
         //int N = rand() % MAXN + 1;
         //printf("\n1\n");
-        printf("%d %d\n", N, N - 1);
-        /*
+
+
+        //printf("%d %d\n", N, N - 1);
+
         printf("%d\n", N);
 
+        /*
         printf("1");
         for (int i = 0; i < N - 1; ++ i)
             printf(" 0");
         printf("\n");
         */
-        /*
         for (int i = 0; i < N - 1; ++ i)
             if (rand() % 100 < 10)
                 printf("%d ", 1);
@@ -42,7 +44,6 @@ int main() {
             printf("%d\n", 1);
         else
             printf("%d\n", 0);
-        */
 
         int all = N;
         /*

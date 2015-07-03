@@ -1,13 +1,11 @@
 #include <cstdio>
 #include <cstring>
-#include <algorithm>
-#include <vector>
-#include <queue>
 
 using namespace std;
 
 #define MAXN    100000+1
 #define MAXE    2*(MAXN)
+#define min(X,Y)    ((X < Y) ? X : Y)
 
 int N;
 
@@ -39,9 +37,10 @@ void dfs(int x, int parent) {
 
 int Stack[MAXN];
 int Ptrs[MAXN];
+
 inline void dfs() {
     DFSTime = 0;
-    memset(visited, false, sizeof(visited));
+    memset(visited + 1, false, sizeof(bool) * N);
     int ESP = 1; Stack[0] = root;
     for (int i = 1; i <= N; ++ i)
         Ptrs[i] = start[i];
@@ -77,14 +76,32 @@ inline void dfs() {
 int Color[MAXN];
 int colors;
 
-vector<int> Graph[MAXN];
 int loops[MAXN];
 
+int newE;
+int newv[MAXE];
+int newstart[MAXN];
+int newnexte[MAXE];
+
 void ContractGraph() {
-    memset(Color, -1, sizeof(Color));
+    memset(Color + 1, -1, sizeof(int) * N);
     Color[root] = colors = 0;
 
-    queue<int> Q; Q.push(root);
+    int ESP = 1; Stack[0] = root;
+    while (ESP) {
+        int x = Stack[ESP - 1]; -- ESP;
+        for (int i = start[x]; i != -1; i = nexte[i]) {
+            //printf("edge %d %d\n", x, v[i]);
+            if (Color[v[i]] != -1) continue;
+            if (lowT[v[i]] > enterT[x])
+                Color[v[i]] = ++ colors;
+            else
+                Color[v[i]] = Color[x];
+            //printf("color(%d) --> %d\n", v[i], Color[v[i]]);
+            Stack[ESP] = v[i]; ++ ESP;
+        }
+    }
+    /*
     while (!Q.empty()) {
         int x = Q.front(); Q.pop();
         for (int i = start[x]; i != -1; i = nexte[i]) {
@@ -98,15 +115,18 @@ void ContractGraph() {
             Q.push(v[i]);
         }
     }
+    */
 
-    for (int i = 0; i <= colors; ++ i) {
-        Graph[i].clear();
-        loops[i] = 0;
-    }
+    memset(loops, 0, sizeof(int) * (colors + 1));
+    newE = 0;
+    memset(newstart, -1, sizeof(int) * (colors + 1));
+
     for (int u = 1; u <= N; ++ u)
         for (int i = start[u]; i != -1; i = nexte[i]) {
             if (Color[u] == Color[v[i]]) ++ loops[Color[u]];
-            else Graph[Color[u]].push_back(Color[v[i]]);
+            else {
+                newv[newE] = Color[v[i]]; newnexte[newE] = newstart[Color[u]]; newstart[Color[u]] = newE; ++ newE;
+            }
         }
 
 /*
@@ -129,26 +149,25 @@ int SG(int x, int parent) {
 */
 
 inline void SG() {
-    memset(SGvalue, -1, sizeof(SGvalue));
-    memset(visited, false, sizeof(visited));
+    memset(SGvalue, -1, sizeof(int) * (colors + 1));
     int ESP = 1; Stack[0] = root;
     Ptrs[root] = -1;
     while (ESP) {
         int x = Stack[ESP - 1];
-        if (!visited[x]) {
-            visited[x] = true;
-            for (int i = 0; i < Graph[x].size(); ++ i)
-                if (Graph[x][i] != Ptrs[x]) {
-                    Stack[ESP] = Graph[x][i]; ++ ESP;
-                    Ptrs[Graph[x][i]] = x;
+        if (SGvalue[x] == -1) {
+            SGvalue[x] = -1000;
+            for (int i = newstart[x]; i != -1; i = newnexte[i])
+                if (newv[i] != Ptrs[x]) {
+                    Stack[ESP] = newv[i]; ++ ESP;
+                    Ptrs[newv[i]] = x;
                 }
         }
         else {
-            if (SGvalue[x] == -1) {
+            if (SGvalue[x] == -1000) {
                 SGvalue[x] = (loops[x] >> 1) & 1;
-                for (int i = 0; i < Graph[x].size(); ++ i)
-                    if (Graph[x][i] != Ptrs[x])
-                        SGvalue[x] ^= 1 + SGvalue[Graph[x][i]];
+                for (int i = newstart[x]; i != -1; i = newnexte[i])
+                    if (newv[i] != Ptrs[x])
+                        SGvalue[x] ^= 1 + SGvalue[newv[i]];
             }
             -- ESP;
         }
@@ -182,7 +201,7 @@ inline void solve() {
 */
 
     E = 0;
-    memset(start, -1, sizeof(start));
+    memset(start + 1, -1, sizeof(int) * N);
     for (int i = 0; i < n - 1; ++ i) {
         int x, y;
         scanf("%d%d", &x, &y);
@@ -211,6 +230,7 @@ inline void solve() {
     dfs();
 
     ContractGraph();
+//    printf("here\n");
 
     root = 0;
     //memset(SGvalue, -1, sizeof(SGvalue));

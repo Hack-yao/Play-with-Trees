@@ -5,25 +5,45 @@
 
 using namespace std;
 
-#define MAXN 27 
-//#define N 20
+//#define MAXN 27 
+#define N 50
 //#define M 100000
 
 //#define N 10
 //#define M 5
 
-int f[MAXN + 1];
+int f[N + 1];
 
 int main() {
     srand(time(NULL));
     //int M = 100000;
-    int T = 10;
+    int T = 1;
 
     printf("%d\n", T);
     while (T --) {
-        int N = rand() % MAXN + 1;
-        printf("\n1\n");
+        //int N = rand() % MAXN + 1;
+        //printf("\n1\n");
+        printf("%d %d\n", N, N - 1);
+        /*
         printf("%d\n", N);
+
+        printf("1");
+        for (int i = 0; i < N - 1; ++ i)
+            printf(" 0");
+        printf("\n");
+        */
+        /*
+        for (int i = 0; i < N - 1; ++ i)
+            if (rand() % 100 < 10)
+                printf("%d ", 1);
+            else
+                printf("%d ", 0);
+        if (rand() % 100 < 10)
+            printf("%d\n", 1);
+        else
+            printf("%d\n", 0);
+        */
+
         int all = N;
         /*
         for (int i = 1; i < N; ++ i)
